@@ -1,5 +1,6 @@
 MAX_MISORDER = 100
 MAX_DROPOUT = 3000
+MAX_CAPACITY = 256
 
 
 class JitterFrame:
@@ -34,7 +35,9 @@ class JitterBuffer:
 
         delta = sequence_number - self._origin
         if delta >= self._capacity:
-            if delta > MAX_DROPOUT:
+            if not self.fixed() and delta < 1.5 * self._capacity:
+                self.__resize(2 * self._capacity)
+            elif delta > MAX_DROPOUT:
                 self.__reset()
                 self._origin = sequence_number
                 delta = 0
@@ -62,9 +65,22 @@ class JitterBuffer:
             self._origin += 1
         return frames
 
+    def fixed(self):
+        return self._capacity >= MAX_CAPACITY
+
     def __reset(self):
         self._head = 0
         self._origin = None
 
         for i in range(self._capacity):
             self._frames[i] = None
+
+    def __resize(self, capacity):
+        frames = [None for i in range(capacity)]
+        head = self._head
+        for i in range(self._capacity):
+            frames[i] = self._frames[head]
+            head = (head + 1) % self._capacity
+        self._capacity = capacity
+        self._frames = frames
+        self._head = 0

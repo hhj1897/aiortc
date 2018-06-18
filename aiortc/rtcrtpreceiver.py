@@ -142,7 +142,8 @@ class RTCRtpReceiver:
                         break
                     payloads.append(frame.payload)
 
-                if got_frame:
+                if (got_frame or
+                   (count == self._jitter_buffer.capacity - 1 and self._jitter_buffer.fixed())):
                     self._jitter_buffer.remove(count)
                     video_frames = decoder.decode(payloads)
                     for video_frame in video_frames:
