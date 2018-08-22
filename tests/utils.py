@@ -21,12 +21,14 @@ def dummy_dtls_transport_pair(loss=None):
     transport_a.state = 'connected'
     transport_a.transport = DummyIceTransport(role='controlling')
     transport_a._register_rtp_receiver = dummy_register_rtp_receiver
+    transport_a._send_data = transport_a.send
     transport_a._send_rtp = transport_a.send
 
     transport_b.data = transport_b
     transport_b.state = 'connected'
     transport_b.transport = DummyIceTransport(role='controlled')
     transport_b._register_rtp_receiver = dummy_register_rtp_receiver
+    transport_b._send_data = transport_b.send
     transport_b._send_rtp = transport_b.send
 
     return transport_a, transport_b

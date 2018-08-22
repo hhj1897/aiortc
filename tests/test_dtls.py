@@ -80,11 +80,11 @@ class RTCDtlsTransportTest(TestCase):
             session2.start(session1.getLocalParameters())))
 
         # send encypted data
-        run(session1.data.send(b'ping'))
+        run(session1._send_data(b'ping'))
         data = run(session2.data.recv())
         self.assertEqual(data, b'ping')
 
-        run(session2.data.send(b'pong'))
+        run(session2._send_data(b'pong'))
         data = run(session1.data.recv())
         self.assertEqual(data, b'pong')
 
@@ -104,7 +104,7 @@ class RTCDtlsTransportTest(TestCase):
 
         # try sending after close
         with self.assertRaises(ConnectionError):
-            run(session1.data.send(b'foo'))
+            run(session1._send_data(b'foo'))
 
     def test_rtp(self):
         transport1, transport2 = dummy_ice_transport_pair()
