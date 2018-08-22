@@ -702,32 +702,7 @@ class RTCSctpTransport(EventEmitter):
             if data is True:
                 break
 
-            try:
-                packet = Packet.parse(data)
-            except ValueError:
-                continue
-
-            # is this an init?
-            init_chunk = len([x for x in packet.chunks if isinstance(x, InitChunk)])
-            if init_chunk:
-                assert len(packet.chunks) == 1
-                expected_tag = 0
-            else:
-                expected_tag = self._local_verification_tag
-
-            # verify tag
-            if packet.verification_tag != expected_tag:
-                self.__log_debug('Bad verification tag %d vs %d',
-                                 packet.verification_tag, expected_tag)
-                continue
-
-            # handle chunks
-            for chunk in packet.chunks:
-                await self._receive_chunk(chunk)
-
-            # send SACK if needed
-            if self._sack_needed:
-                await self._send_sack()
+            await self._handle_sctp_data(data)
 
     def _flight_size_decrease(self, chunk):
         self._flight_size = max(0, self._flight_size - chunk._book_size)
@@ -751,6 +726,37 @@ class RTCSctpTransport(EventEmitter):
 
     def _get_timestamp(self):
         return int(time.time())
+
+    async def _handle_sctp_data(self, data):
+        """
+        Handle data received from the network.
+        """
+        try:
+            packet = Packet.parse(data)
+        except ValueError:
+            return
+
+        # is this an init?
+        init_chunk = len([x for x in packet.chunks if isinstance(x, InitChunk)])
+        if init_chunk:
+            assert len(packet.chunks) == 1
+            expected_tag = 0
+        else:
+            expected_tag = self._local_verification_tag
+
+        # verify tag
+        if packet.verification_tag != expected_tag:
+            self.__log_debug('Bad verification tag %d vs %d',
+                             packet.verification_tag, expected_tag)
+            return
+
+        # handle chunks
+        for chunk in packet.chunks:
+            await self._receive_chunk(chunk)
+
+        # send SACK if needed
+        if self._sack_needed:
+            await self._send_sack()
 
     def _mark_received(self, tsn):
         """
